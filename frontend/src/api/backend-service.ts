@@ -1,6 +1,13 @@
 import { request } from './client'
 import { moduleMeta } from '@/data/modules'
-import type { ActionResult, EntryRow, OverviewResult, PageResult } from '@/data/types'
+import type {
+  ActionResult,
+  EntryRow,
+  OverviewResult,
+  PageResult,
+  RetentionEvent,
+  RetentionReceipt,
+} from '@/data/types'
 
 export { moduleMeta }
 
@@ -59,3 +66,39 @@ export async function loadOverview(): Promise<OverviewResult> {
   if (!response.ok) throw new Error('运营概览读取失败')
   return await response.json()
 }
+
+// ————————————————————————————————————————————
+// 保留复核 / 交付引用台账
+// ————————————————————————————————————————————
+
+export async function listRetentionEvents(): Promise<RetentionEvent[]> {
+  const response = await request('/api/retention/events')
+  if (!response.ok) throw new Error('保留处理轨迹读取失败')
+  const payload = (await response.json()) as { items: RetentionEvent[] }
+  return payload.items
+}
+
+export async function listRetentionReceipts(): Promise<RetentionReceipt[]> {
+  const response = await request('/api/retention/receipts')
+  if (!response.ok) throw new Error('样本保留回执读取失败')
+  const payload = (await response.json()) as { items: RetentionReceipt[] }
+  return payload.items
+}
+
+export function sampleDownloadUrl(id: number): string {
+  return `/api/k_anonymity/${id}/download-sample`
+}
+
+/** 阻断态下点击下载：读取服务端 403 文案并展示，不产生文件。 */
+export async function fetchDownloadBlockReason(id: number): Promise<string> {
+  const response = await request(sampleDownloadUrl(id))
+  if (response.ok) return ''
+  try {
+    const data = (await response.json()) as { detail?: string; message?: string }
+    return data.detail || data.message || '该样本当前不允许下载'
+  } catch {
+    return `接口返回 ${response.status}，该样本当前不允许下载`
+  }
+}
+
+export type { EntryRow }

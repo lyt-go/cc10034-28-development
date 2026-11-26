@@ -13,7 +13,9 @@
         <span class="head-desc">面向数据脱敏、差分隐私、安全聚合与访问审计的数据安全计算与隐私保护平台。</span>
         <span class="head-user">当前值班：数据工程组</span>
       </header>
-      <RouterView />
+      <RouterView v-slot="{ Component, route }">
+        <component :is="Component" :key="route.path" />
+      </RouterView>
     </main>
   </div>
 </template>

@@ -18,9 +18,19 @@ def _number(keyword: str) -> list[str]:
 # 导入日期工具
 # ————————————————————————————————————————————
 try:
-    from datetime import datetime
-except ImportError:
+    from datetime import datetime, date, timedelta
+except ImportError:  # pragma: no cover
     from datetime import datetime as _dt
+
+# 保留复核场景的相对日期：保证任意时间起服务都有「已到期」和「未到期」各一批。
+_TODAY = date.today()
+RETENTION_DATES = {
+    "batch_expired_until": (_TODAY - timedelta(days=10)).isoformat(),
+    "ref_expired_until": (_TODAY - timedelta(days=3)).isoformat(),
+    "batch_active_until": (_TODAY + timedelta(days=30)).isoformat(),
+    "ref_active_until": (_TODAY + timedelta(days=90)).isoformat(),
+    "today": _TODAY.isoformat(),
+}
 
 SEED_ROWS: dict[str, list[dict[str, Any]]] = {
     # ========================================
@@ -501,6 +511,34 @@ SEED_ROWS: dict[str, list[dict[str, Any]]] = {
             "创建时间": "2026-03-01",
             "失效时间": "2026-09-01"
         },
+        {
+            "id": 4,
+            "status": "已暂停",
+            "pending": True,
+            "abnormal": True,
+            "映射编号": "PSEU-0004",
+            "原始标识": "交付接收方·营销联合分析组（指向已到期样本批次 BATCH-EXP-01）",
+            "假名标识": "pref:9f86d081884c7d65",
+            "映射算法": "HMAC-SHA256+交付盐",
+            "可逆标记": "不可逆",
+            "盐值哈希": "salt_delivery_exp_2026Q4",
+            "创建时间": "2026-08-20",
+            "失效时间": RETENTION_DATES["ref_expired_until"]
+        },
+        {
+            "id": 5,
+            "status": "交付中",
+            "pending": True,
+            "abnormal": False,
+            "映射编号": "PSEU-0005",
+            "原始标识": "交付接收方·风控建模供应商（指向未到期样本批次 BATCH-NEW-01）",
+            "假名标识": "pref:2cf24dba5fb0a30e",
+            "映射算法": "AES-256-GCM+交付信封",
+            "可逆标记": "可逆(需密钥)",
+            "盐值哈希": "salt_delivery_new_2026Q4",
+            "创建时间": "2026-10-20",
+            "失效时间": RETENTION_DATES["ref_active_until"]
+        },
     ],
 
     # ========================================
@@ -548,6 +586,34 @@ SEED_ROWS: dict[str, list[dict[str, Any]]] = {
             "最小等价类大小": "1",
             "匿名化措施": "需增加等价类大小",
             "检查结论": "不满足K=3,最小等价类=1"
+        },
+        {
+            "id": 4,
+            "status": "已到期",
+            "pending": True,
+            "abnormal": True,
+            "检查编号": "K_AN-0004",
+            "数据集名称": "到期样本批次A·就诊记录脱敏样本（BATCH-EXP-01）",
+            "准标识符列": "年龄, 邮编, 性别",
+            "K值要求": "5",
+            "等价类数量": 36,
+            "最小等价类大小": "6",
+            "匿名化措施": "泛化+抑制",
+            "检查结论": "K=5复核通过；样本批次保留期限已到，待保留复核"
+        },
+        {
+            "id": 5,
+            "status": "保留中",
+            "pending": True,
+            "abnormal": False,
+            "检查编号": "K_AN-0005",
+            "数据集名称": "保留期内样本批次B·交易统计微聚集样本（BATCH-NEW-01）",
+            "准标识符列": "邮编, 消费类别",
+            "K值要求": "10",
+            "等价类数量": 120,
+            "最小等价类大小": "11",
+            "匿名化措施": "微聚集",
+            "检查结论": "符合K=10匿名性要求；样本批次尚在保留期内"
         },
     ],
 
